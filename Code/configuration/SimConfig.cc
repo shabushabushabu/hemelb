@@ -983,8 +983,10 @@ namespace hemelb::configuration
 
       // Number of vertices
       unsigned int num_vertices = polydata->GetNumberOfPoints();
-      centerlineData.clear();
-      centerlineData.resize(num_vertices);
+      centerlineICConf.points.clear();
+      centerlineICConf.radii.clear();
+      centerlineICConf.points.resize(num_vertices);
+      centerlineICConf.radii.resize(num_vertices);
 
       vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
       vtkSmartPointer<vtkDataArray> radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
@@ -995,14 +997,8 @@ namespace hemelb::configuration
         double radius = radii->GetComponent(i, 0);
 
         util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
-        centerlineData[i] = { point, radius };
-
-        // log::Logger::Log<log::Trace, log::Singleton>("Point %i: x = %e, y = %e, z = %e, radius = %e",
-        //                                              i,
-        //                                              point.x(),
-        //                                              point.y(),
-        //                                              point.z(),
-        //                                              radius);
+        centerlineICConf.points[i] = point;
+        centerlineICConf.radii[i] = radius;
 
         // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
         //           << ", radius = " << radius << std::endl;
@@ -1021,10 +1017,10 @@ namespace hemelb::configuration
       vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
 
       unsigned int num_vertices = polydata->GetNumberOfPoints();
-      oneDimVelocity.clear();
-      oneDimPressure.clear();
-      oneDimVelocity.resize(num_vertices);
-      oneDimPressure.resize(num_vertices);
+      centerlineICConf.oneDimVelocity.clear();
+      centerlineICConf.oneDimPressure.clear();
+      centerlineICConf.oneDimVelocity.resize(num_vertices);
+      centerlineICConf.oneDimPressure.resize(num_vertices);
 
       vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
       vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
@@ -1036,24 +1032,29 @@ namespace hemelb::configuration
 
         util::Vector3D<double> vel(0.0 , 0.0, velocity); // assume flow in z-direction
         util::Vector3D<double> pres(0.0 , 0.0, pressure);
-        oneDimVelocity[i] = vel;
-        oneDimPressure[i] = pres;
+        centerlineICConf.oneDimVelocity[i] = vel;
+        centerlineICConf.oneDimPressure[i] = pres;
 
         // std::cout << "Point " << i << ": velocity = (" << vel.x() << ", " << vel.y() << ", " << vel.z()
         //           << "), pressure = (" << pres.x() << ", " << pres.y() << ", " << pres.z() << ")" << std::endl;
       }
     }
 
-    const std::vector<std::pair<util::Vector3D<double>, double>>& SimConfig::GetCenterlineData() const {
-    return centerlineData;
-    }
+    // const std::vector<std::pair<util::Vector3D<double>, double>>& SimConfig::GetCenterlineData() const {
+    // return centerlineData;
+    // }
 
-    const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimVelocity() const {
-    return oneDimVelocity;
-    }
+    // const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimVelocity() const {
+    // return oneDimVelocity;
+    // }
 
-    const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimPressure() const {
-    return oneDimPressure;
-    }
+    // const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimPressure() const {
+    // return oneDimPressure;
+    // }
+
+    // const SimConfig::CenterlineICConfig& SimConfig::GetCenterlineICConfig() const {
+    // return centerlineICConf;
+    // }
+        
 
 }

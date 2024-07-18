@@ -251,6 +251,19 @@ namespace hemelb::configuration
         LatticeTimeStep output_period;
     };
 
+    // struct CenterlinePathConfig {
+    //     std::filesystem::path centerline_path;
+    //     std::filesystem::path onedimfluiddynamics_path;
+    // };
+
+    // Centerline
+    struct CenterlineICConfig {
+        std::vector<util::Vector3D<double>> points;
+        std::vector<double> radii;
+        std::vector<util::Vector3D<double>> oneDimVelocity;
+        std::vector<util::Vector3D<double>> oneDimPressure;
+    };
+
     class SimConfig
     {
         friend class SimBuilder;
@@ -447,12 +460,14 @@ namespace hemelb::configuration
         std::map<std::string, TemplateCellConfig> readTemplateCells(io::xml::Element const& cellsEl) const;
         RBCConfig DoIOForRedBloodCells(const io::xml::Element& rbcEl) const;
         // Centerline
+        // const CenterlineICConfig& GetCenterlineICConfig() const;
+
         void DoIOForCenterlineIC(const io::xml::Element centerlineICEl);
         void ReadCenterlineData(const std::string& filename);
         void ReadFlowProfileData(const std::string& filename);
-        const std::vector<std::pair<util::Vector3D<double>, double>>& GetCenterlineData() const;
-        const std::vector<util::Vector3D<double>>& GetOneDimVelocity() const;
-        const std::vector<util::Vector3D<double>>& GetOneDimPressure() const;
+        // const std::vector<std::pair<util::Vector3D<double>, double>>& GetCenterlineData() const;
+        // const std::vector<util::Vector3D<double>>& GetOneDimVelocity() const;
+        // const std::vector<util::Vector3D<double>>& GetOneDimPressure() const;
 
     private:
         path xmlFilePath;
@@ -471,9 +486,10 @@ namespace hemelb::configuration
         std::optional<RBCConfig> rbcConf;
 
         // Centerline
-        std::vector<std::pair<util::Vector3D<double>, double>> centerlineData;
-        std::vector<util::Vector3D<double>> oneDimVelocity;
-        std::vector<util::Vector3D<double>> oneDimPressure;
+        // std::vector<std::pair<util::Vector3D<double>, double>> centerlineData;
+        // std::vector<util::Vector3D<double>> oneDimVelocity;
+        // std::vector<util::Vector3D<double>> oneDimPressure;
+        CenterlineICConfig centerlineICConf;
 
       protected:
         GlobalSimInfo sim_info;
