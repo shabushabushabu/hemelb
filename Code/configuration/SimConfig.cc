@@ -1040,21 +1040,4 @@ namespace hemelb::configuration
       }
     }
 
-    // const std::vector<std::pair<util::Vector3D<double>, double>>& SimConfig::GetCenterlineData() const {
-    // return centerlineData;
-    // }
-
-    // const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimVelocity() const {
-    // return oneDimVelocity;
-    // }
-
-    // const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimPressure() const {
-    // return oneDimPressure;
-    // }
-
-    // const SimConfig::CenterlineICConfig& SimConfig::GetCenterlineICConfig() const {
-    // return centerlineICConf;
-    // }
-        
-
 }
