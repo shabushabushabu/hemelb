@@ -5,6 +5,13 @@
 
 #include <string>
 
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkPointData.h>
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
+#include <vtkXMLPolyDataReader.h>
+
 #include "configuration/SimConfig.h"
 #include "build_info.h"
 
@@ -99,6 +106,11 @@ namespace hemelb::configuration
 	      throw Exception() << "Input XML has redbloodcells section but HEMELB_BUILD_RBC=OFF";
 #endif
       }
+
+      // Centerline
+      DoIOForCenterlineIC(topNode.GetChildOrThrow("centerline_initial_conditions"));
+      ReadCenterlineData(centerlineFilePath);
+      ReadFlowProfileData(oneDimFluidDynamicsFilePath);
     }
 
     void SimConfig::DoIOForSimulation(const io::xml::Element simEl)
@@ -178,6 +190,20 @@ namespace hemelb::configuration
       // </geometry>
       dataFilePath = RelPathToFullPath(geometryEl.GetChildOrThrow("datafile").GetAttributeOrThrow("path"));
     }
+
+    // Centerline
+    void SimConfig::DoIOForCenterlineIC(const io::xml::Element centerlineICEl)
+    {
+      // Required element
+      // <centerline_initial_conditions>
+      //   <centerline_file path="absolute path to VTP" />
+      //   <fluid_dynamics_file path="absolute path to VTP" />
+      // </centerline_initial_conditions>
+      centerlineFilePath = centerlineICEl.GetChildOrThrow("centerline_file").GetAttributeOrThrow("path");
+      oneDimFluidDynamicsFilePath = centerlineICEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path");
+
+    }
+
 
     /**
      * Helper function to ensure that the iolet being created matches the compiled
@@ -940,6 +966,94 @@ namespace hemelb::configuration
     const MonitoringConfig& SimConfig::GetMonitoringConfiguration() const
     {
       return monitoringConfig;
+    }
+
+    // Centerline
+    void SimConfig::ReadCenterlineData(const std::string& filename) {
+      // VtkErrorsThrow t;
+      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+      log::Logger::Log<log::Debug, log::Singleton>("Reading centerline data from VTK polydata file");
+      reader->ReadFromInputStringOff();
+      reader->SetFileName(filename.c_str());
+
+      reader->Update();
+
+      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+      // Number of vertices
+      unsigned int num_vertices = polydata->GetNumberOfPoints();
+      centerlineData.clear();
+      centerlineData.resize(num_vertices);
+
+      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+      vtkSmartPointer<vtkDataArray> radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
+      // TODO: Add logger (field checking)
+
+      for (unsigned int i = 0; i < num_vertices; ++i) {
+        double* point_coord = points->GetPoint(i);
+        double radius = radii->GetComponent(i, 0);
+
+        util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
+        centerlineData[i] = { point, radius };
+
+        // log::Logger::Log<log::Trace, log::Singleton>("Point %i: x = %e, y = %e, z = %e, radius = %e",
+        //                                              i,
+        //                                              point.x(),
+        //                                              point.y(),
+        //                                              point.z(),
+        //                                              radius);
+
+        // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
+        //           << ", radius = " << radius << std::endl;
+      }
+    }
+
+    void SimConfig::ReadFlowProfileData(const std::string& filename) {
+      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+      log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
+      reader->ReadFromInputStringOff();
+      reader->SetFileName(filename.c_str());
+
+      reader->Update();
+
+      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+      unsigned int num_vertices = polydata->GetNumberOfPoints();
+      oneDimVelocity.clear();
+      oneDimPressure.clear();
+      oneDimVelocity.resize(num_vertices);
+      oneDimPressure.resize(num_vertices);
+
+      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+      vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
+      vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
+
+      for (unsigned int i = 0; i < num_vertices; ++i) {
+        double velocity = velocityArray->GetComponent(i, 0); // GetTuple3(i);
+        double pressure = pressureArray->GetComponent(i, 0);
+
+        util::Vector3D<double> vel(0.0 , 0.0, velocity); // assume flow in z-direction
+        util::Vector3D<double> pres(0.0 , 0.0, pressure);
+        oneDimVelocity[i] = vel;
+        oneDimPressure[i] = pres;
+
+        // std::cout << "Point " << i << ": velocity = (" << vel.x() << ", " << vel.y() << ", " << vel.z()
+        //           << "), pressure = (" << pres.x() << ", " << pres.y() << ", " << pres.z() << ")" << std::endl;
+      }
+    }
+
+    const std::vector<std::pair<util::Vector3D<double>, double>>& SimConfig::GetCenterlineData() const {
+    return centerlineData;
+    }
+
+    const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimVelocity() const {
+    return oneDimVelocity;
+    }
+
+    const std::vector<util::Vector3D<double>>& SimConfig::GetOneDimPressure() const {
+    return oneDimPressure;
     }
 
 }

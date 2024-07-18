@@ -288,6 +288,15 @@ namespace hemelb::configuration
         {
           return dataFilePath;
         }
+        // Centerline
+        const path& GetCenterlineFilePath() const
+        {
+          return centerlineFilePath;
+        }
+        const path& GetOneDimFluidDynamicsFilePath() const
+        {
+          return oneDimFluidDynamicsFilePath;
+        }
         LatticeTimeStep GetTotalTimeSteps() const
         {
           return sim_info.time.total_steps;
@@ -437,10 +446,19 @@ namespace hemelb::configuration
         TemplateCellConfig readCell(const io::xml::Element& cellNode) const;
         std::map<std::string, TemplateCellConfig> readTemplateCells(io::xml::Element const& cellsEl) const;
         RBCConfig DoIOForRedBloodCells(const io::xml::Element& rbcEl) const;
+        // Centerline
+        void DoIOForCenterlineIC(const io::xml::Element centerlineICEl);
+        void ReadCenterlineData(const std::string& filename);
+        void ReadFlowProfileData(const std::string& filename);
+        const std::vector<std::pair<util::Vector3D<double>, double>>& GetCenterlineData() const;
+        const std::vector<util::Vector3D<double>>& GetOneDimVelocity() const;
+        const std::vector<util::Vector3D<double>>& GetOneDimPressure() const;
 
     private:
         path xmlFilePath;
         path dataFilePath;
+        path centerlineFilePath;
+        path oneDimFluidDynamicsFilePath;
 
         std::vector<extraction::PropertyOutputFile> propertyOutputs;
         /**
@@ -451,6 +469,11 @@ namespace hemelb::configuration
         MonitoringConfig monitoringConfig; ///< Configuration of various checks/tests
 
         std::optional<RBCConfig> rbcConf;
+
+        // Centerline
+        std::vector<std::pair<util::Vector3D<double>, double>> centerlineData;
+        std::vector<util::Vector3D<double>> oneDimVelocity;
+        std::vector<util::Vector3D<double>> oneDimPressure;
 
       protected:
         GlobalSimInfo sim_info;
