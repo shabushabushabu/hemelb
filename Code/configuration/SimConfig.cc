@@ -5,13 +5,6 @@
 
 #include <string>
 
-#include <vtkCellData.h>
-#include <vtkDoubleArray.h>
-#include <vtkPointData.h>
-#include <vtkPolyData.h>
-#include <vtkSmartPointer.h>
-#include <vtkXMLPolyDataReader.h>
-
 #include "configuration/SimConfig.h"
 #include "build_info.h"
 
