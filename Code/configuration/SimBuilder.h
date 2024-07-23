@@ -109,6 +109,8 @@ namespace hemelb::configuration {
                 io::PathManager const& fileManager,
                 std::vector<reporting::Reportable*> const & reps
         ) const;
+        void ReadCenterlineData(const std::string& filename);
+        void ReadFlowProfileData(const std::string& filename);
     };
 
 

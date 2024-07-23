@@ -70,9 +70,42 @@ namespace hemelb::configuration {
         result_type operator()(const configuration::CheckpointIC& cfg) const {
             return lb::CheckpointInitialCondition{cfg.t0, cfg.cpFile, cfg.maybeOffFile};
         }
+
+        result_type operator()(const configuration::CentrelineIC& cfg) const {
+            std::vector<PhysicalVelocity> physical_velocity; // 3D
+            std::vector<PhysicalPressure> physical_pressure;
+            std::vector<PhysicalDistance> physical_radius; // 3D
+            // read
+            // unit converter 
+            return lb::CentrelineInitialCondition{cfg.t0};
+        }
+
     };
 
-    // Factory function just delegates to visitor
+    // Centerline configuration::CenterlineIC&
+    // auto SimBuilder::BuildCenterlineIC(const CenterlineICConfig& ic) const -> CenterlineIC {
+    //     // std::vector<util::Vector3D<double>> points;
+    //     // std::vector<double> radii;
+    //     // std::vector<util::Vector3D<double>> oneDimVelocity;
+    //     // std::vector<double> oneDimPressure; -> lattice
+
+    //     auto ans = // Data type TBD
+    //     // std::transform ??
+    //     ans->SetPosition(unit_converter->ConvertPositionToLatticeUnits(conf.position));
+    //     ans->SetRadius(unit_converter->ConvertDistanceToLatticeUnits(ic.radius_m));
+
+    //     // TBD: void: transform vector elems.
+
+
+    //     // I/O
+
+    //     // Conversion
+
+    //     // Phy -> Lattice 
+
+    // }
+
+    // Factory function just delegates to visitor // ******
     lb::InitialCondition SimBuilder::BuildInitialCondition() const {
         return std::visit(ICMaker{*unit_converter}, config.initial_condition);
     }
@@ -257,4 +290,75 @@ namespace hemelb::configuration {
         }
         return reporter;
     }
+
+    // Centerline
+    // void SimBuilder::ReadCentrelineData(const std::string& filename) {
+    //   // VtkErrorsThrow t;
+    //   auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+    //   log::Logger::Log<log::Debug, log::Singleton>("Reading centreline data from VTK polydata file");
+    //   reader->ReadFromInputStringOff();
+    //   reader->SetFileName(filename.c_str());
+
+    //   reader->Update();
+
+    //   vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+    //   // Number of vertices
+    //   unsigned int num_vertices = polydata->GetNumberOfPoints();
+    //   centrelineICConf.points.clear();
+    //   centrelineICConf.radii.clear();
+    //   centrelineICConf.points.resize(num_vertices);
+    //   centrelineICConf.radii.resize(num_vertices);
+
+    //   vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+    //   vtkSmartPointer<vtkDataArray> radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
+    //   // TODO: Add logger (field checking)
+
+    //   for (unsigned int i = 0; i < num_vertices; ++i) {
+    //     double* point_coord = points->GetPoint(i);
+    //     double radius = radii->GetComponent(i, 0);
+
+    //     util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
+    //     centrelineICConf.points[i] = point;
+    //     centrelineICConf.radii[i] = radius;
+
+    //     // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
+    //     //           << ", radius = " << radius << std::endl;
+    //   }
+    // }
+
+    // void SimBuilder::ReadFlowProfileData(const std::string& filename) {
+    //   auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+    //   log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
+    //   reader->ReadFromInputStringOff();
+    //   reader->SetFileName(filename.c_str());
+
+    //   reader->Update();
+
+    //   vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+    //   unsigned int num_vertices = polydata->GetNumberOfPoints();
+    //   centrelineICConf.oneDimVelocity.clear();
+    //   centrelineICConf.oneDimPressure.clear();
+    //   centrelineICConf.oneDimVelocity.resize(num_vertices);
+    //   centrelineICConf.oneDimPressure.resize(num_vertices);
+
+    //   vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+    //   vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
+    //   vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
+
+    //   for (unsigned int i = 0; i < num_vertices; ++i) {
+    //     double velocity = velocityArray->GetComponent(i, 0); // GetTuple3(i);
+    //     double pressure = pressureArray->GetComponent(i, 0);
+    //     // fix type
+    //     util::Vector3D<double> vel(0.0 , 0.0, velocity); // assume flow in z-direction
+    //     centrelineICConf.oneDimVelocity[i] = vel;
+    //     centrelineICConf.oneDimPressure[i] = pressure;
+
+    //     // std::cout << "Point " << i << ": velocity = (" << vel.x() << ", " << vel.y() << ", " << vel.z()
+    //     //           << "), pressure = (" << pres.x() << ", " << pres.y() << ", " << pres.z() << ")" << std::endl;
+    //   }
+    // }
 }

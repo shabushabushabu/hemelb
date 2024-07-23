@@ -62,10 +62,31 @@ namespace hemelb::lb {
       std::filesystem::path cpFile;
       std::optional<std::filesystem::path> maybeOffFile;
     };
+    // Centreline
+    struct CentrelineInitialCondition : InitialConditionBase {
+      // CentrelineInitialCondition(std::optional<LatticeTimeStep> t0, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamic);
 
-    class InitialCondition : std::variant<EquilibriumInitialCondition, CheckpointInitialCondition> {
+      CentrelineInitialCondition();
+
+      CentrelineInitialCondition(std::optional<LatticeTimeStep> t0,
+				  distribn_t density = 0.0,
+				  distribn_t mx = 0.0, distribn_t my = 0.0, distribn_t mz = 0.0);
+      
+      template<class LatticeType>
+      void SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const;
+      
+    private:
+      distribn_t density;
+      distribn_t mom_x;
+      distribn_t mom_y;
+      distribn_t mom_z;
+      // std::filesystem::path centrelineFile;
+      // std::filesystem::path oneDimFluidDynamicsFile;
+    };
+
+    class InitialCondition : std::variant<EquilibriumInitialCondition, CheckpointInitialCondition, CentrelineInitialCondition> {
       // Alias for private base
-      using ICVar = std::variant<EquilibriumInitialCondition, CheckpointInitialCondition>;
+      using ICVar = std::variant<EquilibriumInitialCondition, CheckpointInitialCondition, CentrelineInitialCondition>;
     public:
       // Expose c'tors to allow creation
       using ICVar::ICVar;

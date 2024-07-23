@@ -41,6 +41,21 @@ namespace hemelb {
       : InitialConditionBase(t0), cpFile(std::move(cp)), maybeOffFile(std::move(maybeOff)) {
     }
 
+    // Centreline
+    CentrelineInitialCondition::CentrelineInitialCondition() :
+      InitialConditionBase(),
+      density(1.0), mom_x(0.0), mom_y(0.0), mom_z(0.0) {
+    }
+    
+    CentrelineInitialCondition::CentrelineInitialCondition(
+      std::optional<LatticeTimeStep> t0,
+      distribn_t rho,
+      distribn_t mx, distribn_t my, distribn_t mz) :
+      InitialConditionBase(t0),
+      density(rho),
+      mom_x(mx), mom_y(my), mom_z(mz) {
+    }
+
     // InitialCondition - sum type container
 
     // Visitor for setting time
