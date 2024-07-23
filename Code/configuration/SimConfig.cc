@@ -33,6 +33,11 @@ namespace hemelb::configuration
             : ICConfigBase(t), cpFile(std::move(cp)), maybeOffFile(std::move(maybeOff)) {
     }
 
+    // Centreline
+    CentrelineIC::CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics)
+            : ICConfigBase(t), centrelineFile(std::move(centreline)), oneDimFluidDynamicsFile(std::move(oneDimFluidDynamics)) {
+    }
+
 
     std::unique_ptr<SimConfig> SimConfig::New(const path& path)
     {
@@ -106,11 +111,6 @@ namespace hemelb::configuration
 	      throw Exception() << "Input XML has redbloodcells section but HEMELB_BUILD_RBC=OFF";
 #endif
       }
-
-      // Centerline
-      DoIOForCenterlineIC(topNode.GetChildOrThrow("centerline_initial_conditions"));
-      ReadCenterlineData(centerlineFilePath);
-      ReadFlowProfileData(oneDimFluidDynamicsFilePath);
     }
 
     void SimConfig::DoIOForSimulation(const io::xml::Element simEl)
@@ -190,21 +190,7 @@ namespace hemelb::configuration
       // </geometry>
       dataFilePath = RelPathToFullPath(geometryEl.GetChildOrThrow("datafile").GetAttributeOrThrow("path"));
     }
-
-    // Centerline
-    void SimConfig::DoIOForCenterlineIC(const io::xml::Element centerlineICEl)
-    {
-      // Required element
-      // <centerline_initial_conditions>
-      //   <centerline_file path="absolute path to VTP" />
-      //   <fluid_dynamics_file path="absolute path to VTP" />
-      // </centerline_initial_conditions>
-      centerlineFilePath = centerlineICEl.GetChildOrThrow("centerline_file").GetAttributeOrThrow("path");
-      oneDimFluidDynamicsFilePath = centerlineICEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path");
-
-    }
-
-
+    
     /**
      * Helper function to ensure that the iolet being created matches the compiled
      * iolet BC.
@@ -663,11 +649,19 @@ namespace hemelb::configuration
         // TODO: use something other than an if-tree
         auto pressureEl = initialconditionsEl.GetChildOrNull("pressure");
         auto checkpointEl = initialconditionsEl.GetChildOrNull("checkpoint");
+        auto centrelineEl = initialconditionsEl.GetChildOrNull("centreline");
         if (pressureEl) {
             if (checkpointEl) {
                 // Both are present - this is an error
                 throw Exception()
                         << "XML contains both <pressure> and <checkpoint> sub elements of <initialconditions>";
+            } else if (centrelineEl) {
+                // Centreline
+                initial_condition = CentrelineIC(
+                        t0,
+                        RelPathToFullPath(centrelineEl.GetChildOrThrow("centreline_file").GetAttributeOrThrow("path")),
+                        RelPathToFullPath(centrelineEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path"))
+                );
             } else {
                 // Only pressure
                 io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
@@ -967,77 +961,4 @@ namespace hemelb::configuration
     {
       return monitoringConfig;
     }
-
-    // Centerline
-    void SimConfig::ReadCenterlineData(const std::string& filename) {
-      // VtkErrorsThrow t;
-      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
-
-      log::Logger::Log<log::Debug, log::Singleton>("Reading centerline data from VTK polydata file");
-      reader->ReadFromInputStringOff();
-      reader->SetFileName(filename.c_str());
-
-      reader->Update();
-
-      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
-
-      // Number of vertices
-      unsigned int num_vertices = polydata->GetNumberOfPoints();
-      centerlineICConf.points.clear();
-      centerlineICConf.radii.clear();
-      centerlineICConf.points.resize(num_vertices);
-      centerlineICConf.radii.resize(num_vertices);
-
-      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
-      vtkSmartPointer<vtkDataArray> radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
-      // TODO: Add logger (field checking)
-
-      for (unsigned int i = 0; i < num_vertices; ++i) {
-        double* point_coord = points->GetPoint(i);
-        double radius = radii->GetComponent(i, 0);
-
-        util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
-        centerlineICConf.points[i] = point;
-        centerlineICConf.radii[i] = radius;
-
-        // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
-        //           << ", radius = " << radius << std::endl;
-      }
-    }
-
-    void SimConfig::ReadFlowProfileData(const std::string& filename) {
-      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
-
-      log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
-      reader->ReadFromInputStringOff();
-      reader->SetFileName(filename.c_str());
-
-      reader->Update();
-
-      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
-
-      unsigned int num_vertices = polydata->GetNumberOfPoints();
-      centerlineICConf.oneDimVelocity.clear();
-      centerlineICConf.oneDimPressure.clear();
-      centerlineICConf.oneDimVelocity.resize(num_vertices);
-      centerlineICConf.oneDimPressure.resize(num_vertices);
-
-      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
-      vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
-      vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
-
-      for (unsigned int i = 0; i < num_vertices; ++i) {
-        double velocity = velocityArray->GetComponent(i, 0); // GetTuple3(i);
-        double pressure = pressureArray->GetComponent(i, 0);
-
-        util::Vector3D<double> vel(0.0 , 0.0, velocity); // assume flow in z-direction
-        util::Vector3D<double> pres(0.0 , 0.0, pressure);
-        centerlineICConf.oneDimVelocity[i] = vel;
-        centerlineICConf.oneDimPressure[i] = pres;
-
-        // std::cout << "Point " << i << ": velocity = (" << vel.x() << ", " << vel.y() << ", " << vel.z()
-        //           << "), pressure = (" << pres.x() << ", " << pres.y() << ", " << pres.z() << ")" << std::endl;
-      }
-    }
-
 }

@@ -104,8 +104,15 @@ namespace hemelb::configuration
       std::optional<std::filesystem::path> maybeOffFile;
     };
 
+    // Centreline
+    struct CentrelineIC : ICConfigBase {
+      CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics);
+      std::filesystem::path centrelineFile;
+      std::filesystem::path oneDimFluidDynamicsFile;
+    };
+
     // Variant including null state
-    using ICConfig = std::variant<std::monostate, EquilibriumIC, CheckpointIC>;
+    using ICConfig = std::variant<std::monostate, EquilibriumIC, CheckpointIC, CentrelineIC>;
 
     struct TimeInfo {
         std::uint64_t total_steps;
@@ -251,14 +258,6 @@ namespace hemelb::configuration
         LatticeTimeStep output_period;
     };
 
-    // Centerline
-    struct CenterlineICConfig {
-        std::vector<util::Vector3D<double>> points;
-        std::vector<double> radii;
-        std::vector<util::Vector3D<double>> oneDimVelocity;
-        std::vector<util::Vector3D<double>> oneDimPressure;
-    };
-
     class SimConfig
     {
         friend class SimBuilder;
@@ -295,15 +294,6 @@ namespace hemelb::configuration
         const path& GetDataFilePath() const
         {
           return dataFilePath;
-        }
-        // Centerline
-        const path& GetCenterlineFilePath() const
-        {
-          return centerlineFilePath;
-        }
-        const path& GetOneDimFluidDynamicsFilePath() const
-        {
-          return oneDimFluidDynamicsFilePath;
         }
         LatticeTimeStep GetTotalTimeSteps() const
         {
@@ -429,6 +419,8 @@ namespace hemelb::configuration
 
         void DoIOForInitialConditions(io::xml::Element parent);
 	void DoIOForCheckpointFile(const io::xml::Element& checkpointEl);
+        // Centreline
+        void DoIOForCentrelineICFile(const io::xml::Element& centrelineICEl);
 
         /**
          * Reads monitoring configuration from XML file
@@ -454,16 +446,10 @@ namespace hemelb::configuration
         TemplateCellConfig readCell(const io::xml::Element& cellNode) const;
         std::map<std::string, TemplateCellConfig> readTemplateCells(io::xml::Element const& cellsEl) const;
         RBCConfig DoIOForRedBloodCells(const io::xml::Element& rbcEl) const;
-        // Centerline
-        void DoIOForCenterlineIC(const io::xml::Element centerlineICEl);
-        void ReadCenterlineData(const std::string& filename);
-        void ReadFlowProfileData(const std::string& filename);
 
     private:
         path xmlFilePath;
         path dataFilePath;
-        path centerlineFilePath;
-        path oneDimFluidDynamicsFilePath;
 
         std::vector<extraction::PropertyOutputFile> propertyOutputs;
         /**
@@ -474,9 +460,6 @@ namespace hemelb::configuration
         MonitoringConfig monitoringConfig; ///< Configuration of various checks/tests
 
         std::optional<RBCConfig> rbcConf;
-
-        // Centerline
-        CenterlineICConfig centerlineICConf;
 
       protected:
         GlobalSimInfo sim_info;
