@@ -43,17 +43,20 @@ namespace hemelb {
 
     // Centreline
     CentrelineInitialCondition::CentrelineInitialCondition() :
-      InitialConditionBase(),
-      density(1.0), mom_x(0.0), mom_y(0.0), mom_z(0.0) {
+      InitialConditionBase() {
     }
     
     CentrelineInitialCondition::CentrelineInitialCondition(
-      std::optional<LatticeTimeStep> t0,
-      distribn_t rho,
-      distribn_t mx, distribn_t my, distribn_t mz) :
+      std::optional<LatticeTimeStep> t0, 
+      std::vector<LatticePosition> centreline_coordinates,
+      std::vector<LatticeDistance> radii,
+      std::vector<LatticeVelocity> velocities,
+      std::vector<LatticePressure> pressures) :
       InitialConditionBase(t0),
-      density(rho),
-      mom_x(mx), mom_y(my), mom_z(mz) {
+      centrelineCoordinate(std::move(centreline_coordinates)),
+      radiusDistance(std::move(radii)),
+      velocityCoordinate(std::move(velocities)),
+      pressureMagnitude(std::move(pressures)) {
     }
 
     // InitialCondition - sum type container

@@ -88,6 +88,9 @@ namespace hemelb::configuration {
             ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii);
             ReadFlowProfileData(cfg.oneDimFluidDynamicsFile, velocities, pressures);
 
+            // std::cout << "pressure 01 (before) " << pressures[0] << std::endl; // REMOVE
+            // std::cout << "pressure 02 (before)" << pressures.back() << std::endl; // REMOVE
+
             // convert to lattice units
             std::transform(centreline_coordinates.begin(), centreline_coordinates.end(), centreline_coordinates.begin(),
                 [&](PhysicalPosition centreline_coordinate) {
@@ -105,15 +108,11 @@ namespace hemelb::configuration {
                 [&](PhysicalPressure pressure) {
                     return units.ConvertPressureToLatticeUnits(pressure);
                     });
-
-            // print
-            std::transform(pressures.begin(), pressures.end(), pressures.begin(),
-                [&](LatticePressure pressure) {
-                    std::cout << "Lattice Pressure: " << pressure << std::endl;
-                    return pressure;
-                    });
+                    
+            // std::cout << "pressure 01 (after) " << pressures[0] << std::endl; // REMOVE
+            // std::cout << "pressure 02 (after)" << pressures.back() << std::endl; // REMOVE
             
-            return lb::CentrelineInitialCondition{cfg.t0};
+            return lb::CentrelineInitialCondition{cfg.t0, centreline_coordinates, radii, velocities, pressures}; // here -> values -> move to mem in var (own)
         }
 
     };
@@ -303,9 +302,12 @@ namespace hemelb::configuration {
         }
         return reporter;
     }
-
+//  IOCommunicator
     // Centreline
     void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii) {
+        // consider: improvement only 1 P does I/O
+        // 1 P
+        // each P on node: node reader (shared)
       // VtkErrorsThrow t;
       auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 

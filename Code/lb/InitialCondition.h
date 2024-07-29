@@ -64,24 +64,23 @@ namespace hemelb::lb {
     };
     // Centreline
     struct CentrelineInitialCondition : InitialConditionBase {
-      // CentrelineInitialCondition(std::optional<LatticeTimeStep> t0, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamic);
 
       CentrelineInitialCondition();
 
       CentrelineInitialCondition(std::optional<LatticeTimeStep> t0,
-				  distribn_t density = 0.0,
-				  distribn_t mx = 0.0, distribn_t my = 0.0, distribn_t mz = 0.0);
+        std::vector<LatticePosition> centreline_coordinates,
+        std::vector<LatticeDistance> radii,
+        std::vector<LatticeVelocity> velocities,
+        std::vector<LatticePressure> pressures);
       
       template<class LatticeType>
       void SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const;
       
     private:
-      distribn_t density;
-      distribn_t mom_x;
-      distribn_t mom_y;
-      distribn_t mom_z;
-      // std::filesystem::path centrelineFile;
-      // std::filesystem::path oneDimFluidDynamicsFile;
+      std::vector<LatticePosition> centrelineCoordinate;
+      std::vector<LatticeDistance> radiusDistance;
+      std::vector<LatticeVelocity> velocityCoordinate;
+      std::vector<LatticePressure> pressureMagnitude;
     };
 
     class InitialCondition : std::variant<EquilibriumInitialCondition, CheckpointInitialCondition, CentrelineInitialCondition> {
