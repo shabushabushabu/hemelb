@@ -315,6 +315,6 @@ namespace hemelb::configuration {
     }
 
     void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii);
-    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeVelocity>& velocities, std::vector<LatticePressure>& pressures);
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures);
 }
 #endif

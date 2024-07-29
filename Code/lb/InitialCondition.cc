@@ -50,7 +50,7 @@ namespace hemelb {
       std::optional<LatticeTimeStep> t0, 
       std::vector<LatticePosition> centreline_coordinates,
       std::vector<LatticeDistance> radii,
-      std::vector<LatticeVelocity> velocities,
+      std::vector<LatticeSpeed> velocities,
       std::vector<LatticePressure> pressures) :
       InitialConditionBase(t0),
       centrelineCoordinate(std::move(centreline_coordinates)),

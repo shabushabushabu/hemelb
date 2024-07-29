@@ -70,7 +70,7 @@ namespace hemelb::lb {
       CentrelineInitialCondition(std::optional<LatticeTimeStep> t0,
         std::vector<LatticePosition> centreline_coordinates,
         std::vector<LatticeDistance> radii,
-        std::vector<LatticeVelocity> velocities,
+        std::vector<LatticeSpeed> velocities,
         std::vector<LatticePressure> pressures);
       
       template<class LatticeType>
@@ -79,7 +79,7 @@ namespace hemelb::lb {
     private:
       std::vector<LatticePosition> centrelineCoordinate;
       std::vector<LatticeDistance> radiusDistance;
-      std::vector<LatticeVelocity> velocityCoordinate;
+      std::vector<LatticeSpeed> velocityCoordinate;
       std::vector<LatticePressure> pressureMagnitude;
     };
 

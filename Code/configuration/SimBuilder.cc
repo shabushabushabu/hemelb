@@ -82,7 +82,7 @@ namespace hemelb::configuration {
             std::vector<LatticePosition> centreline_coordinates;
             std::vector<LatticeDistance> radii;
 
-            std::vector<LatticeVelocity> velocities;
+            std::vector<LatticeSpeed> velocities;
             std::vector<LatticePressure> pressures;
 
             ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii);
@@ -101,8 +101,8 @@ namespace hemelb::configuration {
                     return units.ConvertDistanceToLatticeUnits(radius);
                     });
             std::transform(velocities.begin(), velocities.end(), velocities.begin(),
-                [&](PhysicalVelocity velocity) {
-                    return units.ConvertVelocityToLatticeUnits(velocity);
+                [&](PhysicalSpeed velocity) {
+                    return units.ConvertSpeedToLatticeUnits(velocity);
                     });
             std::transform(pressures.begin(), pressures.end(), pressures.begin(),
                 [&](PhysicalPressure pressure) {
@@ -339,13 +339,10 @@ namespace hemelb::configuration {
         util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
         points[i] = point * MM_TO_M;
         radii[i] = radius * MM_TO_M;
-
-        // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
-        //           << ", radius = " << radius << std::endl;
       }
     }
 
-    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeVelocity>& velocities, std::vector<LatticePressure>& pressures) {
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures) {
       auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 
       log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
@@ -367,15 +364,11 @@ namespace hemelb::configuration {
       vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
 
       for (unsigned int i = 0; i < num_vertices; ++i) {
-        double velocity = velocityArray->GetComponent(i, 0); // GetTuple3(i);
+        double velocity = velocityArray->GetComponent(i, 0);
         double pressure = pressureArray->GetComponent(i, 0);
 
-        LatticeVelocity vel(0.0 , 0.0, velocity); // assume flow in z-direction
-        velocities[i] = vel;
+        velocities[i] = velocity;
         pressures[i] = pressure;
-
-        // std::cout << "Point " << i << ": velocity = (" << velocities[i].x() << ", " << velocities[i].y() << ", " << velocities[i].z()
-        //           << "), pressure = " << pressures[i] <<  ")" << std::endl;
       }
     }
 }
