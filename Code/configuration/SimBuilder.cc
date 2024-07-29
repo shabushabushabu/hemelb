@@ -112,7 +112,7 @@ namespace hemelb::configuration {
             // std::cout << "pressure 01 (after) " << pressures[0] << std::endl; // REMOVE
             // std::cout << "pressure 02 (after)" << pressures.back() << std::endl; // REMOVE
             
-            return lb::CentrelineInitialCondition{cfg.t0, centreline_coordinates, radii, velocities, pressures}; // here -> values -> move to mem in var (own)
+            return lb::CentrelineInitialCondition{cfg.t0, centreline_coordinates, radii, velocities, pressures};
         }
 
     };
@@ -334,9 +334,11 @@ namespace hemelb::configuration {
         double* point_coord = vtk_points->GetPoint(i);
         double radius = vtk_radii->GetComponent(i, 0);
 
+        const double MM_TO_M = 1e-3;
+
         util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
-        points[i] = point;
-        radii[i] = radius;
+        points[i] = point * MM_TO_M;
+        radii[i] = radius * MM_TO_M;
 
         // std::cout << "Point " << i << ": x = " << point.x() << ", y = " << point.y() << ", z = " << point.z()
         //           << ", radius = " << radius << std::endl;

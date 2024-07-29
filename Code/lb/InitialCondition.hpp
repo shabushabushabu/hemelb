@@ -57,15 +57,13 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
   distribn_t f_eq[LatticeType::NUMVECTORS];
   // LatticeType::CalculateFeq(1.0, 0.0, 0.0, 0.0, f_eq);
 
-  // read centerline object
-  // TODO: change to list of centerline coordinates, convert to lattice unit (builder)
-  const auto centerline_point1 = centrelineCoordinate[0];
-  const auto centerline_point2 = centrelineCoordinate.back();
+  // read centreline object
+  // TODO: change to list of centreline coordinates
+  const auto centreline_point1 = centrelineCoordinate[0];
+  const auto centreline_point2 = centrelineCoordinate.back();
 
-  const float pressure_point1 = pressureMagnitude[0]; // 0.000000;
-  const float pressure_point2 = pressureMagnitude.back(); // 0.000000;
-  std::cout << "pressure_point1: " << pressure_point1 << std::endl; // REMOVE
-  std::cout << "pressure_point2: " << pressure_point2 << std::endl; // REMOVE
+  const float pressure_point1 = pressureMagnitude[0];
+  const float pressure_point2 = pressureMagnitude.back();
 
   const auto velocity_point1 = velocityCoordinate[0];
   const auto velocity_point2 = velocityCoordinate.back();
@@ -74,11 +72,10 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
   const float radius_point2 = radiusDistance.back();
 
   // TODO: Remove hardcode. Change to read from configuration
-  auto length = (centerline_point1 - centerline_point2).GetMagnitude();
+  auto length = (centreline_point1 - centreline_point2).GetMagnitude();
 
-  // TODO: Move inside the loop after the correct centerline point is obtained
-  const auto unit_vector = (centerline_point2 - centerline_point1).GetNormalised();
-  // std::cout << "unit_vec" << unit_vector[0] << unit_vector[1] << unit_vector[2] << std::endl; // REMOVE
+  // TODO: Move inside the loop after the correct centreline point is obtained
+  const auto unit_vector = (centreline_point2 - centreline_point1).GetNormalised();
   
   for (site_t i = 0; i < latDat->GetDomain().GetLocalFluidSiteCount(); i++) {
 
@@ -86,12 +83,12 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
     auto site = latDat->GetSite(i);
     const auto coordinates = site.GetGlobalSiteCoords();
 
-    // TODO: Add calculation to obtain the closest centerline points (currently use the further end)
+    // TODO: Add calculation to obtain the closest centreline points (currently use the further end)
 
-    // extrapolate from centerline properties to lattice properties
-    const auto centerline_lattice_vector = coordinates - centerline_point1;
-    auto projection_distance = Dot(centerline_lattice_vector, unit_vector);
-    const auto  perpendicular_vector = centerline_lattice_vector - projection_distance * unit_vector;
+    // extrapolate from centreline properties to lattice properties
+    const auto centreline_lattice_vector = coordinates - centreline_point1;
+    auto projection_distance = Dot(centreline_lattice_vector, unit_vector);
+    const auto  perpendicular_vector = centreline_lattice_vector - projection_distance * unit_vector;
     auto perpendicular_distance = perpendicular_vector.GetMagnitude();
 
     LatticePressure lattice_pressure = pressure_point1 - (pressure_point1 - pressure_point2) * projection_distance / length;
@@ -99,15 +96,14 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
 
     // convert velocity and pressure to density and momentum
     LatticeDensity density = lattice_pressure / Cs2;
-    LatticeMomentum lattice_momentum; // TODO: Simplify
-    // density * lattice_velocity
-    lattice_momentum = density * lattice_velocity;
-    // lattice_momentum.x() = density * lattice_velocity.x();
-    // lattice_momentum.y() = density * lattice_velocity.y();
-    // lattice_momentum.z() = density * lattice_velocity.z();
+    LatticeMomentum lattice_momentum = density * lattice_velocity;
+
+    // if (i==1) {
+    //   std::cout << ioComms.Rank() << " density: " << density << std::endl;
+    //   std::cout << ioComms.Rank() << " lattice_momentum: " << lattice_momentum[0] << lattice_momentum[1] << lattice_momentum[2] << std::endl;
+    // }
     
     LatticeType::CalculateFeq(density, lattice_momentum, f_eq);
-    // LatticeType::CalculateFeq(density, lattice_momentum.x(), lattice_momentum.y(), lattice_momentum.z() , f_eq);
 
     // get dist 
     distribn_t* f_old_p = this->GetFOld(latDat, i * LatticeType::NUMVECTORS);
