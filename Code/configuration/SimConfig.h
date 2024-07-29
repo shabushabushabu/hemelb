@@ -104,8 +104,15 @@ namespace hemelb::configuration
       std::optional<std::filesystem::path> maybeOffFile;
     };
 
+    // Centreline
+    struct CentrelineIC : ICConfigBase {
+      CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics);
+      std::filesystem::path centrelineFile;
+      std::filesystem::path oneDimFluidDynamicsFile;
+    };
+
     // Variant including null state
-    using ICConfig = std::variant<std::monostate, EquilibriumIC, CheckpointIC>;
+    using ICConfig = std::variant<std::monostate, EquilibriumIC, CheckpointIC, CentrelineIC>;
 
     struct TimeInfo {
         std::uint64_t total_steps;
@@ -412,6 +419,8 @@ namespace hemelb::configuration
 
         void DoIOForInitialConditions(io::xml::Element parent);
 	void DoIOForCheckpointFile(const io::xml::Element& checkpointEl);
+        // Centreline
+        void DoIOForCentrelineICFile(const io::xml::Element& centrelineICEl);
 
         /**
          * Reads monitoring configuration from XML file

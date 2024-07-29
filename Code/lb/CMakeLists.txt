@@ -17,3 +17,6 @@ add_library(hemelb_lb OBJECT
   MacroscopicPropertyCache.cc SimulationState.cc StabilityTester.cc
   InitialCondition.cc
   )
+
+target_link_libraries(hemelb_lb PRIVATE
+VTK::CommonCore VTK::CommonDataModel VTK::IOXML VTK::FiltersCore)

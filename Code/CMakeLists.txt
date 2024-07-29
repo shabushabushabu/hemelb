@@ -84,6 +84,8 @@ find_hemelb_dependency(ZLIB REQUIRED)
 link_libraries(MPI::MPI_CXX)
 link_libraries(Boost::headers)
 
+find_hemelb_dependency(VTK REQUIRED)
+
 if(HEMELB_BUILD_RBC)
   # Work around some installs of HDF5 having proper targets and others
   # not...

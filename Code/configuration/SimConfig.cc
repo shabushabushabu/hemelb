@@ -26,6 +26,11 @@ namespace hemelb::configuration
             : ICConfigBase(t), cpFile(std::move(cp)), maybeOffFile(std::move(maybeOff)) {
     }
 
+    // Centreline
+    CentrelineIC::CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics)
+            : ICConfigBase(t), centrelineFile(std::move(centreline)), oneDimFluidDynamicsFile(std::move(oneDimFluidDynamics)) {
+    }
+
 
     std::unique_ptr<SimConfig> SimConfig::New(const path& path)
     {
@@ -178,7 +183,7 @@ namespace hemelb::configuration
       // </geometry>
       dataFilePath = RelPathToFullPath(geometryEl.GetChildOrThrow("datafile").GetAttributeOrThrow("path"));
     }
-
+    
     /**
      * Helper function to ensure that the iolet being created matches the compiled
      * iolet BC.
@@ -637,11 +642,19 @@ namespace hemelb::configuration
         // TODO: use something other than an if-tree
         auto pressureEl = initialconditionsEl.GetChildOrNull("pressure");
         auto checkpointEl = initialconditionsEl.GetChildOrNull("checkpoint");
+        auto centrelineEl = initialconditionsEl.GetChildOrNull("centreline");
         if (pressureEl) {
             if (checkpointEl) {
                 // Both are present - this is an error
                 throw Exception()
                         << "XML contains both <pressure> and <checkpoint> sub elements of <initialconditions>";
+            } else if (centrelineEl) {
+                // Centreline
+                initial_condition = CentrelineIC(
+                        t0,
+                        RelPathToFullPath(centrelineEl.GetChildOrThrow("centreline_file").GetAttributeOrThrow("path")),
+                        RelPathToFullPath(centrelineEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path"))
+                );
             } else {
                 // Only pressure
                 io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
@@ -941,5 +954,4 @@ namespace hemelb::configuration
     {
       return monitoringConfig;
     }
-
 }

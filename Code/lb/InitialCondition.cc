@@ -41,6 +41,24 @@ namespace hemelb {
       : InitialConditionBase(t0), cpFile(std::move(cp)), maybeOffFile(std::move(maybeOff)) {
     }
 
+    // Centreline
+    CentrelineInitialCondition::CentrelineInitialCondition() :
+      InitialConditionBase() {
+    }
+    
+    CentrelineInitialCondition::CentrelineInitialCondition(
+      std::optional<LatticeTimeStep> t0, 
+      std::vector<LatticePosition> centreline_coordinates,
+      std::vector<LatticeDistance> radii,
+      std::vector<LatticeSpeed> velocities,
+      std::vector<LatticePressure> pressures) :
+      InitialConditionBase(t0),
+      centrelineCoordinate(std::move(centreline_coordinates)),
+      radiusDistance(std::move(radii)),
+      velocityCoordinate(std::move(velocities)),
+      pressureMagnitude(std::move(pressures)) {
+    }
+
     // InitialCondition - sum type container
 
     // Visitor for setting time

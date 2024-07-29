@@ -8,6 +8,13 @@
 #include <algorithm>
 #include <ranges>
 
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkPointData.h>
+#include <vtkPolyData.h>
+#include <vtkSmartPointer.h>
+#include <vtkXMLPolyDataReader.h>
+
 #include "geometry/GeometryReader.h"
 #include "lb/InitialCondition.h"
 #include "redblood/FlowExtension.h"
@@ -70,9 +77,47 @@ namespace hemelb::configuration {
         result_type operator()(const configuration::CheckpointIC& cfg) const {
             return lb::CheckpointInitialCondition{cfg.t0, cfg.cpFile, cfg.maybeOffFile};
         }
+
+        result_type operator()(const configuration::CentrelineIC& cfg) const {
+            std::vector<LatticePosition> centreline_coordinates;
+            std::vector<LatticeDistance> radii;
+
+            std::vector<LatticeSpeed> velocities;
+            std::vector<LatticePressure> pressures;
+
+            ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii);
+            ReadFlowProfileData(cfg.oneDimFluidDynamicsFile, velocities, pressures);
+
+            // std::cout << "pressure 01 (before) " << pressures[0] << std::endl; // REMOVE
+            // std::cout << "pressure 02 (before)" << pressures.back() << std::endl; // REMOVE
+
+            // convert to lattice units
+            std::transform(centreline_coordinates.begin(), centreline_coordinates.end(), centreline_coordinates.begin(),
+                [&](PhysicalPosition centreline_coordinate) {
+                    return units.ConvertPositionToLatticeUnits(centreline_coordinate);
+                    });
+            std::transform(radii.begin(), radii.end(), radii.begin(),
+                [&](PhysicalDistance radius) {
+                    return units.ConvertDistanceToLatticeUnits(radius);
+                    });
+            std::transform(velocities.begin(), velocities.end(), velocities.begin(),
+                [&](PhysicalSpeed velocity) {
+                    return units.ConvertSpeedToLatticeUnits(velocity);
+                    });
+            std::transform(pressures.begin(), pressures.end(), pressures.begin(),
+                [&](PhysicalPressure pressure) {
+                    return units.ConvertPressureToLatticeUnits(pressure);
+                    });
+                    
+            // std::cout << "pressure 01 (after) " << pressures[0] << std::endl; // REMOVE
+            // std::cout << "pressure 02 (after)" << pressures.back() << std::endl; // REMOVE
+            
+            return lb::CentrelineInitialCondition{cfg.t0, centreline_coordinates, radii, velocities, pressures};
+        }
+
     };
 
-    // Factory function just delegates to visitor
+    // Factory function just delegates to visitor // ******
     lb::InitialCondition SimBuilder::BuildInitialCondition() const {
         return std::visit(ICMaker{*unit_converter}, config.initial_condition);
     }
@@ -256,5 +301,74 @@ namespace hemelb::configuration {
             reporter->AddReportable(r);
         }
         return reporter;
+    }
+//  IOCommunicator
+    // Centreline
+    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii) {
+        // consider: improvement only 1 P does I/O
+        // 1 P
+        // each P on node: node reader (shared)
+      // VtkErrorsThrow t;
+      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+      log::Logger::Log<log::Debug, log::Singleton>("Reading centreline data from VTK polydata file");
+      reader->ReadFromInputStringOff();
+      reader->SetFileName(filename.c_str());
+
+      reader->Update();
+
+      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+      // Number of vertices
+      unsigned int num_vertices = polydata->GetNumberOfPoints();
+      points.clear();
+      radii.clear();
+      points.resize(num_vertices);
+      radii.resize(num_vertices);
+
+      vtkSmartPointer<vtkPoints> vtk_points = polydata->GetPoints();
+      vtkSmartPointer<vtkDataArray> vtk_radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
+      // TODO: Add logger (field checking)
+
+      for (unsigned int i = 0; i < num_vertices; ++i) {
+        double* point_coord = vtk_points->GetPoint(i);
+        double radius = vtk_radii->GetComponent(i, 0);
+
+        const double MM_TO_M = 1e-3;
+
+        util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
+        points[i] = point * MM_TO_M;
+        radii[i] = radius * MM_TO_M;
+      }
+    }
+
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures) {
+      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+
+      log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
+      reader->ReadFromInputStringOff();
+      reader->SetFileName(filename.c_str());
+
+      reader->Update();
+
+      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+
+      unsigned int num_vertices = polydata->GetNumberOfPoints();
+      velocities.clear();
+      pressures.clear();
+      velocities.resize(num_vertices);
+      pressures.resize(num_vertices);
+
+      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+      vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
+      vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
+
+      for (unsigned int i = 0; i < num_vertices; ++i) {
+        double velocity = velocityArray->GetComponent(i, 0);
+        double pressure = pressureArray->GetComponent(i, 0);
+
+        velocities[i] = velocity;
+        pressures[i] = pressure;
+      }
     }
 }

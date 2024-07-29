@@ -62,10 +62,30 @@ namespace hemelb::lb {
       std::filesystem::path cpFile;
       std::optional<std::filesystem::path> maybeOffFile;
     };
+    // Centreline
+    struct CentrelineInitialCondition : InitialConditionBase {
 
-    class InitialCondition : std::variant<EquilibriumInitialCondition, CheckpointInitialCondition> {
+      CentrelineInitialCondition();
+
+      CentrelineInitialCondition(std::optional<LatticeTimeStep> t0,
+        std::vector<LatticePosition> centreline_coordinates,
+        std::vector<LatticeDistance> radii,
+        std::vector<LatticeSpeed> velocities,
+        std::vector<LatticePressure> pressures);
+      
+      template<class LatticeType>
+      void SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const;
+      
+    private:
+      std::vector<LatticePosition> centrelineCoordinate;
+      std::vector<LatticeDistance> radiusDistance;
+      std::vector<LatticeSpeed> velocityCoordinate;
+      std::vector<LatticePressure> pressureMagnitude;
+    };
+
+    class InitialCondition : std::variant<EquilibriumInitialCondition, CheckpointInitialCondition, CentrelineInitialCondition> {
       // Alias for private base
-      using ICVar = std::variant<EquilibriumInitialCondition, CheckpointInitialCondition>;
+      using ICVar = std::variant<EquilibriumInitialCondition, CheckpointInitialCondition, CentrelineInitialCondition>;
     public:
       // Expose c'tors to allow creation
       using ICVar::ICVar;

@@ -73,6 +73,8 @@ namespace hemelb::configuration {
         template <typename T>
         void operator()(T & control) const;
 
+        
+
         // The below could probably be protected/private, but handy for testing.
         [[nodiscard]] std::shared_ptr<lb::SimulationState> BuildSimulationState() const;
         [[nodiscard]] geometry::GmyReadResult ReadGmy(
@@ -311,5 +313,8 @@ namespace hemelb::configuration {
         }
         return {};
     }
+
+    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii);
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures);
 }
 #endif
