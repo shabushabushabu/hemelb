@@ -28,7 +28,8 @@ find_package(VTK 9 REQUIRED COMPONENTS
   IOXML
   WrappingPythonCore
 )
-find_package(CGAL REQUIRED)
+set(CGAL_DIR "/work/m23oc/m23oc/s2554171/dissertation/s2554171/CGAL-5.6/lib/cmake/CGAL")
+find_package(CGAL REQUIRED) 
 
 if(SKBUILD)
   # Scikit-Build does not add your site-packages to the search path
