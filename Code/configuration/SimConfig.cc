@@ -638,34 +638,33 @@ namespace hemelb::configuration
             return GetDimensionalValue<LatticeTimeStep>(el, "lattice");
         });
 
-        // Exactly one of {<pressure>, <checkpoint>} must be present
-        // TODO: use something other than an if-tree
+        // Exactly one of {<pressure>, <checkpoint>, <centreline>} must be present
         auto pressureEl = initialconditionsEl.GetChildOrNull("pressure");
         auto checkpointEl = initialconditionsEl.GetChildOrNull("checkpoint");
         auto centrelineEl = initialconditionsEl.GetChildOrNull("centreline");
+
+        // Verify number of initial condition types
+        int numEl = 0;
+        if (pressureEl) numEl++;
+        if (checkpointEl) numEl++;
+        if (centrelineEl) numEl++;
+        if (numEl == 0) {
+          // No IC!
+          throw Exception() << "XML <initialconditions> element contains no known initial condition type";
+        } else if (numEl > 1) {
+          // More than one IC!
+          throw Exception() << "XML <initialconditions> element contains more than one initial condition type. Exactly one of {<pressure>, <checkpoint>, <centreline>} must be present";
+        }
+
         if (pressureEl) {
-            if (checkpointEl) {
-                // Both are present - this is an error
-                throw Exception()
-                        << "XML contains both <pressure> and <checkpoint> sub elements of <initialconditions>";
-            } else if (centrelineEl) {
-                // Centreline
-                initial_condition = CentrelineIC(
-                        t0,
-                        RelPathToFullPath(centrelineEl.GetChildOrThrow("centreline_file").GetAttributeOrThrow("path")),
-                        RelPathToFullPath(centrelineEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path"))
-                );
-            } else {
-                // Only pressure
-                io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
-                PhysicalPressure p0_mmHg;
-                GetDimensionalValue(uniformEl, "mmHg", p0_mmHg);
-                initial_condition = EquilibriumIC(t0, p0_mmHg);
-            }
-        } else {
-            if (checkpointEl) {
-                // Only checkpoint
-                initial_condition = CheckpointIC(
+          // Only pressure
+          io::xml::Element uniformEl = pressureEl.GetChildOrThrow("uniform");
+          PhysicalPressure p0_mmHg;
+          GetDimensionalValue(uniformEl, "mmHg", p0_mmHg);
+          initial_condition = EquilibriumIC(t0, p0_mmHg);
+        } else if (checkpointEl) {
+          // Only checkpoint
+          initial_condition = CheckpointIC(
                         t0,
                         RelPathToFullPath(checkpointEl.GetAttributeOrThrow("file")),
                         opt_transform(
@@ -673,11 +672,14 @@ namespace hemelb::configuration
                                 [&](std::string_view sv) { return RelPathToFullPath(sv); }
                         )
                 );
-            } else {
-                // No IC!
-                throw Exception() << "XML <initialconditions> element contains no known initial condition type";
-            }
-        }
+         } else if (centrelineEl) {
+          // Only centreline
+          initial_condition = CentrelineIC(
+              t0,
+              RelPathToFullPath(centrelineEl.GetChildOrThrow("centreline_file").GetAttributeOrThrow("path")),
+              RelPathToFullPath(centrelineEl.GetChildOrThrow("fluid_dynamics_file").GetAttributeOrThrow("path"))
+              );
+          }
     }
 
     auto SimConfig::DoIOForCosinePressureInOutlet(
