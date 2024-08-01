@@ -137,24 +137,21 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
   distribn_t f_eq[LatticeType::NUMVECTORS];
   // LatticeType::CalculateFeq(1.0, 0.0, 0.0, 0.0, f_eq);
 
-  // read centreline object
   // TODO: change to list of centreline coordinates
-  const auto centreline_point1 = centrelineCoordinate[0];
-  const auto centreline_point2 = centrelineCoordinate.back();
+  const auto centreline_point1 = centrelineCoordinate.back();
+  const auto centreline_point2 = centrelineCoordinate[0];
 
-  const float pressure_point1 = pressureMagnitude[0];
-  const float pressure_point2 = pressureMagnitude.back();
+  const float pressure_point1 = pressureMagnitude.back();
+  const float pressure_point2 = pressureMagnitude[0];
 
-  const auto velocity_point1 = velocityCoordinate[0];
-  const auto velocity_point2 = velocityCoordinate.back();
+  const auto velocity_point1 = velocityCoordinate.back();
+  const auto velocity_point2 = velocityCoordinate[0];
 
-  const float radius_point1 = radiusDistance[0];
-  const float radius_point2 = radiusDistance.back();
-
-  // TODO: Remove hardcode. Change to read from configuration
-  auto length = (centreline_point1 - centreline_point2).GetMagnitude();
+  const float radius_point1 = radiusDistance.back();
+  const float radius_point2 = radiusDistance[0];
 
   // TODO: Move inside the loop after the correct centreline point is obtained
+  auto length = (centreline_point1 - centreline_point2).GetMagnitude();
   const auto unit_vector = (centreline_point2 - centreline_point1).GetNormalised();
   
   for (site_t i = 0; i < latDat->GetDomain().GetLocalFluidSiteCount(); i++) {
@@ -178,10 +175,9 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
     LatticeDensity density = lattice_pressure / Cs2;
     LatticeMomentum lattice_momentum = density * lattice_velocity;
 
-    // if (i==1) {
-    //   std::cout << ioComms.Rank() << " density: " << density << std::endl;
-    //   std::cout << ioComms.Rank() << " lattice_momentum: " << lattice_momentum[0] << lattice_momentum[1] << lattice_momentum[2] << std::endl;
-    // }
+    // std::cout << ioComms.Rank() << "|" << coordinates[0] << "|" << coordinates[1] << "|" << coordinates[2] 
+    // << "|" << lattice_pressure << "|" << lattice_velocity[0] << "|" << lattice_velocity[1] << "|" << lattice_velocity[2] 
+    // << "|" << perpendicular_distance  << "|" << radius_point1 << std::endl;
     
     LatticeType::CalculateFeq(density, lattice_momentum, f_eq);
 

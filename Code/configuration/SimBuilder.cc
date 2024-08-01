@@ -88,9 +88,6 @@ namespace hemelb::configuration {
             ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii);
             ReadFlowProfileData(cfg.oneDimFluidDynamicsFile, velocities, pressures);
 
-            // std::cout << "pressure 01 (before) " << pressures[0] << std::endl; // REMOVE
-            // std::cout << "pressure 02 (before)" << pressures.back() << std::endl; // REMOVE
-
             // convert to lattice units
             std::transform(centreline_coordinates.begin(), centreline_coordinates.end(), centreline_coordinates.begin(),
                 [&](PhysicalPosition centreline_coordinate) {
@@ -108,9 +105,6 @@ namespace hemelb::configuration {
                 [&](PhysicalPressure pressure) {
                     return units.ConvertPressureToLatticeUnits(pressure);
                     });
-                    
-            // std::cout << "pressure 01 (after) " << pressures[0] << std::endl; // REMOVE
-            // std::cout << "pressure 02 (after)" << pressures.back() << std::endl; // REMOVE
             
             return lb::CentrelineInitialCondition{cfg.t0, centreline_coordinates, radii, velocities, pressures};
         }
