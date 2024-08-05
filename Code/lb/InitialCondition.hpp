@@ -135,22 +135,20 @@ void EquilibriumInitialCondition::SetFs(geometry::FieldData* latDat, const net::
 template<class LatticeType>
 void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const {
   distribn_t f_eq[LatticeType::NUMVECTORS];
-  // LatticeType::CalculateFeq(1.0, 0.0, 0.0, 0.0, f_eq);
 
-  // TODO: change to list of centreline coordinates
+  // use the first and last point to define the centreline
   const auto centreline_point1 = centrelineCoordinate.back();
   const auto centreline_point2 = centrelineCoordinate[0];
 
-  const float pressure_point1 = pressureMagnitude.back();
-  const float pressure_point2 = pressureMagnitude[0];
+  const float pressure_point1 = pressureMagnitude[0];
+  const float pressure_point2 = pressureMagnitude.back();
 
-  const auto velocity_point1 = velocityCoordinate.back();
-  const auto velocity_point2 = velocityCoordinate[0];
+  const auto velocity_point1 = velocityCoordinate[0];
+  const auto velocity_point2 = velocityCoordinate.back();
 
-  const float radius_point1 = radiusDistance.back();
-  const float radius_point2 = radiusDistance[0];
+  const float radius_point1 = radiusDistance[0];
+  const float radius_point2 = radiusDistance.back();
 
-  // TODO: Move inside the loop after the correct centreline point is obtained
   auto length = (centreline_point1 - centreline_point2).GetMagnitude();
   const auto unit_vector = (centreline_point2 - centreline_point1).GetNormalised();
   
@@ -159,8 +157,6 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
     // obtain lattice coordinates
     auto site = latDat->GetSite(i);
     const auto coordinates = site.GetGlobalSiteCoords();
-
-    // TODO: Add calculation to obtain the closest centreline points (currently use the further end)
 
     // extrapolate from centreline properties to lattice properties
     const auto centreline_lattice_vector = coordinates - centreline_point1;
