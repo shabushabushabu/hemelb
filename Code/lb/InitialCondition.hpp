@@ -137,8 +137,8 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
   distribn_t f_eq[LatticeType::NUMVECTORS];
 
   // use the first and last point to define the centreline
-  const auto centreline_point1 = centrelineCoordinate.back();
-  const auto centreline_point2 = centrelineCoordinate[0];
+  const auto centreline_point1 = centrelineCoordinate[0];
+  const auto centreline_point2 = centrelineCoordinate.back();
 
   const float pressure_point1 = pressureMagnitude[0];
   const float pressure_point2 = pressureMagnitude.back();
