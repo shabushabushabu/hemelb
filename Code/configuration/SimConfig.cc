@@ -26,7 +26,7 @@ namespace hemelb::configuration
             : ICConfigBase(t), cpFile(std::move(cp)), maybeOffFile(std::move(maybeOff)) {
     }
 
-    // Centreline
+    // Centreline IC
     CentrelineIC::CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics)
             : ICConfigBase(t), centrelineFile(std::move(centreline)), oneDimFluidDynamicsFile(std::move(oneDimFluidDynamics)) {
     }

@@ -104,7 +104,7 @@ namespace hemelb::configuration
       std::optional<std::filesystem::path> maybeOffFile;
     };
 
-    // Centreline
+    // Centreline IC
     struct CentrelineIC : ICConfigBase {
       CentrelineIC(std::optional<LatticeTimeStep> t, std::filesystem::path centreline, std::filesystem::path oneDimFluidDynamics);
       std::filesystem::path centrelineFile;

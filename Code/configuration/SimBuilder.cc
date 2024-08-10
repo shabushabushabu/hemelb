@@ -296,13 +296,9 @@ namespace hemelb::configuration {
         }
         return reporter;
     }
-//  IOCommunicator
-    // Centreline
+
     void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii) {
-        // consider: improvement only 1 P does I/O
-        // 1 P
-        // each P on node: node reader (shared)
-      // VtkErrorsThrow t;
+
       auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 
       log::Logger::Log<log::Debug, log::Singleton>("Reading centreline data from VTK polydata file");
@@ -313,7 +309,7 @@ namespace hemelb::configuration {
 
       vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
 
-      // Number of vertices
+      // Get number of vertices
       unsigned int num_vertices = polydata->GetNumberOfPoints();
       points.clear();
       radii.clear();
@@ -322,13 +318,11 @@ namespace hemelb::configuration {
 
       vtkSmartPointer<vtkPoints> vtk_points = polydata->GetPoints();
       vtkSmartPointer<vtkDataArray> vtk_radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
-      // TODO: Add logger (field checking)
+      const double MM_TO_M = 1e-3;
 
       for (unsigned int i = 0; i < num_vertices; ++i) {
         double* point_coord = vtk_points->GetPoint(i);
         double radius = vtk_radii->GetComponent(i, 0);
-
-        const double MM_TO_M = 1e-3;
 
         util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
         points[i] = point * MM_TO_M;
@@ -347,6 +341,7 @@ namespace hemelb::configuration {
 
       vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
 
+      // Get number of vertices
       unsigned int num_vertices = polydata->GetNumberOfPoints();
       velocities.clear();
       pressures.clear();

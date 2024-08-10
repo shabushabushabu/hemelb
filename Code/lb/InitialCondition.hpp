@@ -118,63 +118,6 @@ void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::I
   }
 }
 
-
-// template<class LatticeType>
-// void CentrelineInitialCondition::SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const {
-//   distribn_t f_eq[LatticeType::NUMVECTORS];
-
-//   // use the first and last point to define the centreline
-//   const auto centreline_point1 = centrelineCoordinate[0];
-//   const auto centreline_point2 = centrelineCoordinate.back();
-
-//   const float pressure_point1 = pressureMagnitude[0];
-//   const float pressure_point2 = pressureMagnitude.back();
-
-//   const auto velocity_point1 = velocityCoordinate[0];
-//   const auto velocity_point2 = velocityCoordinate.back();
-
-//   const float radius_point1 = radiusDistance[0];
-//   const float radius_point2 = radiusDistance.back();
-
-//   auto length = (centreline_point1 - centreline_point2).GetMagnitude();
-//   const auto unit_vector = (centreline_point2 - centreline_point1).GetNormalised();
-  
-//   for (site_t i = 0; i < latDat->GetDomain().GetLocalFluidSiteCount(); i++) {
-
-//     // obtain lattice coordinates
-//     auto site = latDat->GetSite(i);
-//     const auto coordinates = site.GetGlobalSiteCoords();
-
-//     // extrapolate from centreline properties to lattice properties
-//     const auto centreline_lattice_vector = coordinates - centreline_point1;
-//     auto projection_distance = Dot(centreline_lattice_vector, unit_vector);
-//     const auto perpendicular_vector = centreline_lattice_vector - projection_distance * unit_vector;
-//     auto perpendicular_distance = perpendicular_vector.GetMagnitude();
-
-//     LatticePressure lattice_pressure = pressure_point1 - (pressure_point1 - pressure_point2) * projection_distance / length;
-//     LatticeVelocity lattice_velocity = (velocity_point1 * unit_vector) * (1 - (perpendicular_distance * perpendicular_distance) / (radius_point1 * radius_point1));
-
-//     // convert velocity and pressure to density and momentum
-//     LatticeDensity density = lattice_pressure / Cs2;
-//     LatticeMomentum lattice_momentum = density * lattice_velocity;
-
-//     // std::cout << ioComms.Rank() << "|" << coordinates[0] << "|" << coordinates[1] << "|" << coordinates[2] 
-//     // << "|" << lattice_pressure << "|" << lattice_velocity[0] << "|" << lattice_velocity[1] << "|" << lattice_velocity[2] 
-//     // << "|" << perpendicular_distance  << "|" << radius_point1 << std::endl;
-    
-//     LatticeType::CalculateFeq(density, lattice_momentum, f_eq);
-
-//     // get dist 
-//     distribn_t* f_old_p = this->GetFOld(latDat, i * LatticeType::NUMVECTORS);
-//     distribn_t* f_new_p = this->GetFNew(latDat, i * LatticeType::NUMVECTORS);
-
-//     for (unsigned int l = 0; l < LatticeType::NUMVECTORS; l++) {
-//       f_new_p[l] = f_old_p[l] = f_eq[l];
-//     }
-//   }
-// }
-
-
     template<class LatticeType>
     void CheckpointInitialCondition::SetFs(geometry::FieldData* latDat, const net::IOCommunicator& ioComms) const {
       auto distributionInputPtr = std::make_unique<extraction::LocalDistributionInput>(cpFile, maybeOffFile, ioComms);
