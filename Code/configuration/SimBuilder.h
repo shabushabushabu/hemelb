@@ -99,7 +99,7 @@ namespace hemelb::configuration {
         [[nodiscard]] std::shared_ptr<net::IteratedAction> BuildColloidController() const;
         template <typename T>
         [[nodiscard]] std::shared_ptr<net::IteratedAction> BuildCellController(T const& control, reporting::Timers& timings) const;
-        [[nodiscard]] lb::InitialCondition BuildInitialCondition() const;
+        [[nodiscard]] lb::InitialCondition BuildInitialCondition(const net::IOCommunicator& ioComms) const;
         [[nodiscard]] std::shared_ptr<extraction::PropertyActor> BuildPropertyExtraction(
                 std::filesystem::path const& xtr_path,
                 const lb::SimulationState& simState,
@@ -232,7 +232,7 @@ namespace hemelb::configuration {
 
         lbm->Initialise(control.inletValues.get(),
                         control.outletValues.get());
-        auto ic = BuildInitialCondition();
+        auto ic = BuildInitialCondition(ioComms);
         lbm->SetInitialConditions(ic, ioComms);
         ndm->ShareNeeds();
         ndm->TransferNonFieldDependentInformation();
@@ -314,7 +314,7 @@ namespace hemelb::configuration {
         return {};
     }
 
-    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii);
-    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures);
+    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii, const net::IOCommunicator& ioComms);
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures, const net::IOCommunicator& ioComms);
 }
 #endif

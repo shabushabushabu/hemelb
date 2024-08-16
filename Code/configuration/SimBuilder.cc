@@ -20,6 +20,7 @@
 #include "redblood/FlowExtension.h"
 #include "reporting/Reporter.h"
 #include "util/variant.h"
+#include "util/span.h"
 
 namespace hemelb::configuration {
 
@@ -64,6 +65,7 @@ namespace hemelb::configuration {
     struct ICMaker {
         using result_type = lb::InitialCondition;
         util::UnitConverter const& units;
+        net::IOCommunicator const& ioComms;
 
         template <typename T>
         result_type operator()(T) const {
@@ -85,8 +87,8 @@ namespace hemelb::configuration {
             std::vector<LatticeSpeed> velocities;
             std::vector<LatticePressure> pressures;
 
-            ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii);
-            ReadFlowProfileData(cfg.oneDimFluidDynamicsFile, velocities, pressures);
+            ReadCentrelineData(cfg.centrelineFile, centreline_coordinates, radii, ioComms);
+            ReadFlowProfileData(cfg.oneDimFluidDynamicsFile, velocities, pressures, ioComms);
 
             // convert to lattice units
             std::transform(centreline_coordinates.begin(), centreline_coordinates.end(), centreline_coordinates.begin(),
@@ -112,8 +114,8 @@ namespace hemelb::configuration {
     };
 
     // Factory function just delegates to visitor // ******
-    lb::InitialCondition SimBuilder::BuildInitialCondition() const {
-        return std::visit(ICMaker{*unit_converter}, config.initial_condition);
+    lb::InitialCondition SimBuilder::BuildInitialCondition(const net::IOCommunicator& ioComms) const {
+        return std::visit(ICMaker{*unit_converter, ioComms}, config.initial_condition);
     }
 
     // Build the iolets
@@ -297,67 +299,116 @@ namespace hemelb::configuration {
         return reporter;
     }
 
-    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, std::vector<LatticeDistance>& radii) {
+    // Centreline
+    void ReadCentrelineData(const std::string& filename, std::vector<LatticePosition>& points, 
+    std::vector<LatticeDistance>& radii, const net::IOCommunicator& ioComms) {
 
-      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+    unsigned int num_vertices;
 
-      log::Logger::Log<log::Debug, log::Singleton>("Reading centreline data from VTK polydata file");
-      reader->ReadFromInputStringOff();
-      reader->SetFileName(filename.c_str());
+    // Current approach: Read the data on the IO rank and broadcast to all ranks
+    // Alternative approach: Read the data on node leader, use: AmNodeLeader() and GetLeadersComm()
+      if (ioComms.OnIORank()) {
 
-      reader->Update();
+        auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 
-      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+        log::Logger::Log<log::Debug, log::Singleton>("[Rank %d]Reading centreline data from VTK polydata file", ioComms.Rank());
+        reader->ReadFromInputStringOff();
+        reader->SetFileName(filename.c_str());
 
-      // Get number of vertices
-      unsigned int num_vertices = polydata->GetNumberOfPoints();
-      points.clear();
-      radii.clear();
-      points.resize(num_vertices);
-      radii.resize(num_vertices);
+        reader->Update();
 
-      vtkSmartPointer<vtkPoints> vtk_points = polydata->GetPoints();
-      vtkSmartPointer<vtkDataArray> vtk_radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
-      const double MM_TO_M = 1e-3;
+        vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
 
-      for (unsigned int i = 0; i < num_vertices; ++i) {
-        double* point_coord = vtk_points->GetPoint(i);
-        double radius = vtk_radii->GetComponent(i, 0);
+        // Number of vertices
+        num_vertices = polydata->GetNumberOfPoints();
+        points.clear();
+        radii.clear();
+        points.resize(num_vertices);
+        radii.resize(num_vertices);
 
-        util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
-        points[i] = point * MM_TO_M;
-        radii[i] = radius * MM_TO_M;
+        vtkSmartPointer<vtkPoints> vtk_points = polydata->GetPoints();
+        vtkSmartPointer<vtkDataArray> vtk_radii = polydata->GetPointData()->GetArray("MaximumInscribedSphereRadius");
+
+        for (unsigned int i = 0; i < num_vertices; ++i) {
+            double* point_coord = vtk_points->GetPoint(i);
+            double radius = vtk_radii->GetComponent(i, 0);
+
+            const double MM_TO_M = 1e-3;
+
+            util::Vector3D<double> point(point_coord[0], point_coord[1], point_coord[2]);
+            points[i] = point * MM_TO_M;
+            radii[i] = radius * MM_TO_M;
+        }
+        
       }
+
+      // Broadcast the number of vertices
+      ioComms.Broadcast(num_vertices, ioComms.GetIORank());
+
+      // Clear points on non-io ranks
+      if (!ioComms.OnIORank()) {
+        points.clear();
+        radii.clear();
+        points.resize(num_vertices);
+        radii.resize(num_vertices);
+      }
+
+      // Broadcast the points and radii
+      ioComms.Broadcast(to_span(points), ioComms.GetIORank());
+      ioComms.Broadcast(to_span(radii), ioComms.GetIORank());
+      
     }
 
-    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, std::vector<LatticePressure>& pressures) {
-      auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
+    void ReadFlowProfileData(const std::string& filename, std::vector<LatticeSpeed>& velocities, 
+    std::vector<LatticePressure>& pressures, const net::IOCommunicator& ioComms) {
 
-      log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
-      reader->ReadFromInputStringOff();
-      reader->SetFileName(filename.c_str());
+      unsigned int num_vertices;
 
-      reader->Update();
+      if (ioComms.OnIORank()) {
 
-      vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
+        auto reader = vtkSmartPointer<vtkXMLPolyDataReader>::New();
 
-      // Get number of vertices
-      unsigned int num_vertices = polydata->GetNumberOfPoints();
-      velocities.clear();
-      pressures.clear();
-      velocities.resize(num_vertices);
-      pressures.resize(num_vertices);
+        log::Logger::Log<log::Debug, log::Singleton>("Reading flow profile data from VTK polydata file");
+        reader->ReadFromInputStringOff();
+        reader->SetFileName(filename.c_str());
 
-      vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
-      vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
-      vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
+        reader->Update();
 
-      for (unsigned int i = 0; i < num_vertices; ++i) {
-        double velocity = velocityArray->GetComponent(i, 0);
-        double pressure = pressureArray->GetComponent(i, 0);
+        vtkSmartPointer<vtkPolyData> polydata(reader->GetOutput());
 
-        velocities[i] = velocity;
-        pressures[i] = pressure;
-      }
+        num_vertices = polydata->GetNumberOfPoints();
+        velocities.clear();
+        pressures.clear();
+        velocities.resize(num_vertices);
+        pressures.resize(num_vertices);
+
+        vtkSmartPointer<vtkPoints> points = polydata->GetPoints();
+        vtkSmartPointer<vtkDataArray> velocityArray = polydata->GetPointData()->GetArray("Velocity");
+        vtkSmartPointer<vtkDataArray> pressureArray = polydata->GetPointData()->GetArray("Pressure");
+
+        for (unsigned int i = 0; i < num_vertices; ++i) {
+            double velocity = velocityArray->GetComponent(i, 0);
+            double pressure = pressureArray->GetComponent(i, 0);
+
+            velocities[i] = velocity;
+            pressures[i] = pressure;
+            }
+        }
+
+        // Broadcast the number of vertices
+        ioComms.Broadcast(num_vertices, ioComms.GetIORank());
+
+        // Clear points on non-io ranks
+        if (!ioComms.OnIORank()) {
+            velocities.clear();
+            pressures.clear();
+            velocities.resize(num_vertices);
+            pressures.resize(num_vertices);
+        }
+
+        // Broadcast the velocities and pressures
+        ioComms.Broadcast(to_span(velocities), ioComms.GetIORank());
+        ioComms.Broadcast(to_span(pressures), ioComms.GetIORank());
+
     }
 }
